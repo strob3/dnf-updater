@@ -1,8 +1,6 @@
 # DNF Updater
 
-DNF Updater monitors and manages pending system updates for Fedora RPM packages (via DNF5) and Flatpak applications directly from the Noctalia Shell.
-
-It provides a lightweight update badge in the bar, per-package selection to skip or apply specific upgrades, storage and download size estimation, and safe execution through Polkit (`pkexec`) or an interactive terminal.
+DNF Updater monitors and manages pending DNF5 and Flatpak updates directly from the Noctalia bar. It provides a lightweight update badge in the bar, per-package selection to skip or apply specific upgrades, download size estimation, and safe execution through Polkit (`pkexec`) or an interactive terminal.
 
 ## Plugin
 
@@ -15,16 +13,38 @@ It provides a lightweight update badge in the bar, per-package selection to skip
 
 The plugin expects the following dependencies on `$PATH`:
 
-- `dnf5` (Fedora RPM package manager)
-- `flatpak` (Flatpak application manager)
-- `pkexec` (Polkit authentication for non-interactive privileged package installation)
+- `dnf5` - required for DNF, COPR, and RPM package management. Fedora 41+ uses DNF5 by default.
+- `flatpak` - optional, Flatpak application manager
+- `pkexec` - (Polkit authentication for non-interactive privileged package installation)
 
 ## Usage
 
-Add the DNF Updater widget to your bar using Noctalia's bar widget picker. Left-click the widget to open the updates panel. You can also toggle the panel or bind it to a compositor shortcut:
+Add the DNF Updater widget to the bar using Noctalia's bar widget picker. Left-click the widget to open the updates panel. You can also toggle the panel or bind it to a compositor shortcut:
 
 ```sh
 noctalia msg panel-toggle strob3/dnf-updater:panel
+```
+
+### Shortcuts & Keybindings
+
+You can also toggle the panel with a hotkey or shell alias:
+
+**Niri** (`~/.config/niri/config.kdl`):
+```kdl
+binds {
+    Mod+U { spawn "noctalia" "msg" "panel-toggle" "strob3/dnf-updater:panel"; }
+}
+```
+
+**Hyprland** (`hyprland.conf`):
+```conf
+bind = $mainMod, U, exec, noctalia msg panel-toggle strob3/dnf-updater:panel
+```
+
+**Shell Alias** (`~/.bashrc` or `~/.zshrc`):
+```sh
+alias dnf-updater="noctalia msg panel-toggle strob3/dnf-updater:panel"
+alias dnf-check="noctalia msg plugin strob3/dnf-updater:service service check"
 ```
 
 ### Controls
@@ -32,7 +52,7 @@ noctalia msg panel-toggle strob3/dnf-updater:panel
 | Action | Target | Description |
 | --- | --- | --- |
 | **Left Click** | Bar Widget | Open or close the updates panel |
-| **Right Click** | Bar Widget | Trigger an immediate update check |
+| **Right Click** | Bar Widget | Refresh the updates |
 | **Middle Click** | Bar Widget | Open plugin settings in *Settings → Plugins* |
 | **Click Row** | Package Row | Toggle package selection (include or exclude from update) |
 | **Chevron Click** | Section Header | Collapse or expand DNF or Flatpak package section |
@@ -69,3 +89,6 @@ noctalia msg plugin strob3/dnf-updater:service service update
 - **Privilege Separation**: Noctalia never runs as root. System upgrades invoke `pkexec dnf5 upgrade` with explicit arguments, or launch inside the user's terminal emulator when configured.
 - **Selective Upgrades**: When packages are deselected, DNF5 is invoked with `--exclude=<pkg>` arguments and Flatpak is invoked with only selected application IDs.
 - **Background Checks**: Update queries use non-blocking JSON queries (`dnf5 check-upgrade --json` and `flatpak remote-ls --updates -j`) to prevent freezing the shell.
+
+## License
+MIT

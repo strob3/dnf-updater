@@ -2,14 +2,6 @@
 -- Panel entry: declarative pop-up panel for DNF Updater (DNF5 + Flatpak).
 -- Renders summary cards, categorized update lists, storage metrics, and execution triggers.
 
-local pluginVersion = (function()
-  local text = noctalia.readFile("plugin.toml")
-  if type(text) ~= "string" then
-    return ""
-  end
-  return ("\n" .. text):match('\nversion%s*=%s*"([^"]+)"') or ""
-end)()
-
 local enableDnf = noctalia.getConfig("enable_dnf") ~= false
 local enableFlatpak = noctalia.getConfig("enable_flatpak") ~= false
 
@@ -599,12 +591,6 @@ render = function()
       fontSize = 15,
       fontWeight = "bold",
       color = "on_surface",
-    }),
-    ui.label({
-      key = "panel-version",
-      text = pluginVersion,
-      fontSize = 10,
-      color = "on_surface_variant",
     }),
     ui.spacer({ key = "header-spacer", flexGrow = 1 }),
     ui.button({
