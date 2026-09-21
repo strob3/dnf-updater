@@ -1,5 +1,6 @@
 # DNF Updater
-
+![dnf-updater thumbnail](thumbnail.webp)
+---
 DNF Updater monitors and manages pending DNF5 and Flatpak updates directly from the Noctalia bar. It provides a lightweight update badge in the bar, per-package selection to skip or apply specific upgrades, download size estimation, and safe execution through Polkit (`pkexec`) or an interactive terminal.
 
 ## Plugin
