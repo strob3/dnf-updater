@@ -84,6 +84,7 @@
     "dnf": "DNF",
     "download": "Download",
     "flatpak": "Flatpak",
+    "last_checked": "Last Checked",
     "storage": "Storage",
     "total": "Total"
   },

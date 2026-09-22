@@ -446,7 +446,6 @@ local function renderDnfSection(state)
       radius = 6,
       align = "center",
       gap = 8,
-      tooltip = isExcluded and tr("actions.include_pkg") or tr("actions.exclude_pkg"),
       onClick = function()
         if not isBusy then
           toggleExcludeDnf(pkg.name)
@@ -596,7 +595,6 @@ local function renderFlatpakSection(state)
       radius = 6,
       align = "center",
       gap = 8,
-      tooltip = isExcluded and tr("actions.include_pkg") or tr("actions.exclude_pkg"),
       onClick = function()
         if not isBusy then
           toggleExcludeFlatpak(pkgKey)

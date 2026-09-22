@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 # DNF Updater - Privileged Update Helper
 #
@@ -8,6 +8,12 @@
 #
 
 set -euo pipefail
+
+# Help / usage
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    echo "Usage: dnf-updater-helper upgrade [--exclude=<pkg1,pkg2,...>]"
+    exit 0
+fi
 
 # Ensure standard, safe environment
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
@@ -23,6 +29,7 @@ fi
 ACTION="${1:-}"
 if [[ "$ACTION" != "upgrade" ]]; then
     echo "Error: unsupported action '${ACTION}'. Only 'upgrade' is allowed." >&2
+    echo "Usage: dnf-updater-helper upgrade [--exclude=<pkg1,pkg2,...>]" >&2
     exit 1
 fi
 shift
@@ -30,7 +37,7 @@ shift
 # Validate any remaining arguments.
 VALID_ARGS=()
 for arg in "$@"; do
-    if [[ "$arg" =~ ^--exclude=[a-zA-Z0-9._+*-][a-zA-Z0-9._+*,-]*$ ]]; then
+    if [[ "$arg" =~ ^--exclude=[a-zA-Z0-9._+*:-][a-zA-Z0-9._+*:,-]*$ ]]; then
         VALID_ARGS+=("$arg")
     else
         echo "Error: invalid argument rejected: '$arg'" >&2

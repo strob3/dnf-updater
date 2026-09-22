@@ -136,7 +136,7 @@ local function shellQuote(str)
   return "'" .. string.gsub(str, "'", "'\\''") .. "'"
 end
 
-local function checkDnf(onFinished)
+local function checkDnf(onFinished, isRetry)
   if not enableDnf then
     state.dnf.count = 0
     state.dnf.packages = {}
@@ -169,6 +169,11 @@ local function checkDnf(onFinished)
 
   noctalia.runAsync({ dnfBin, "check-upgrade", "--json" }, function(result)
     if result.timedOut then
+      if not isRetry then
+        print("[dnf-updater] DNF check timed out; retrying once...")
+        checkDnf(onFinished, true)
+        return
+      end
       state.dnf.status = "error"
       state.dnf.error = "DNF check timed out"
       onFinished(false)
@@ -277,7 +282,7 @@ local function checkDnf(onFinished)
   end)
 end
 
-local function checkFlatpak(onFinished)
+local function checkFlatpak(onFinished, isRetry)
   if not enableFlatpak then
     state.flatpak.count = 0
     state.flatpak.packages = {}
@@ -309,6 +314,11 @@ local function checkFlatpak(onFinished)
 
   noctalia.runAsync({ "flatpak", "remote-ls", "--updates", "--columns=name,application,version,branch,origin,installed-size,download-size,ref", "-j" }, function(result)
     if result.timedOut then
+      if not isRetry then
+        print("[dnf-updater] Flatpak check timed out; retrying once...")
+        checkFlatpak(onFinished, true)
+        return
+      end
       state.flatpak.status = "error"
       state.flatpak.error = "Flatpak check timed out"
       onFinished(false)
@@ -519,7 +529,13 @@ local function updateDnf(excludedList, onFinished)
       if onFinished then onFinished(true) end
     else
       state.dnf.status = "error"
-      state.dnf.error = result.stderr ~= "" and result.stderr or "DNF upgrade failed"
+      local errMsg = "DNF upgrade failed"
+      if result.stderr and result.stderr ~= "" then
+        errMsg = result.stderr
+      elseif result.stdout and result.stdout ~= "" then
+        errMsg = result.stdout
+      end
+      state.dnf.error = errMsg
       if onFinished then onFinished(false) end
     end
     publishState()
@@ -752,7 +768,7 @@ noctalia.state.watch("service_command", function(cmd)
   elseif cmd.action == "update_all" then
     updateAll(cmd.excluded_dnf, cmd.selected_flatpak)
   elseif cmd.action == "update_dnf" then
-    if not isUpdating then
+    if not isUpdating and not isChecking then
       isUpdating = true
       updateDnf(cmd.excluded_dnf, function()
         isUpdating = false
@@ -760,7 +776,7 @@ noctalia.state.watch("service_command", function(cmd)
       end)
     end
   elseif cmd.action == "update_flatpak" then
-    if not isUpdating then
+    if not isUpdating and not isChecking then
       isUpdating = true
       updateFlatpak(cmd.selected_flatpak, function()
         isUpdating = false
