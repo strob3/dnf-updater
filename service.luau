@@ -42,7 +42,6 @@ local state = {
 }
 
 local previousCount = 0
-local elapsedMinutes = 0
 local isChecking = false
 local isUpdating = false
 
@@ -98,6 +97,41 @@ local function parseSizeToBytes(sizeStr)
     return math.floor(num * 1000 * 1000 * 1000 * 1000)
   end
   return math.floor(num)
+end
+
+-- Persisted so a shell restart shows the last result instead of re-checking: with a
+-- daily/weekly interval, checking on every login defeated the point.
+local function stateFile()
+  local dir = noctalia.pluginDataDir()
+  return dir and (dir .. "/state.json") or nil
+end
+
+local function saveState()
+  local path = stateFile()
+  local encoded = path and noctalia.json.encode(state)
+  if encoded then
+    noctalia.writeFile(path, encoded)
+  end
+end
+
+local function loadState()
+  local path = stateFile()
+  if not path or not noctalia.fileExists(path) then
+    return false
+  end
+  local contents = noctalia.readFile(path)
+  local saved = contents and noctalia.json.decode(contents)
+  if type(saved) ~= "table" or type(saved.last_check_timestamp) ~= "number" then
+    return false
+  end
+  state = saved
+  state.status = state.error_message and "ERROR" or (state.total_count == 0 and "SUCCESS" or "IDLE")
+  previousCount = state.total_count or 0
+  return true
+end
+
+local function checkDue()
+  return checkInterval > 0 and os.time() - (state.last_check_timestamp or 0) >= checkInterval * 60
 end
 
 local function publishState()
@@ -427,7 +461,7 @@ local function checkAll(force)
     state.total_install_bytes = (state.dnf.total_install_bytes or 0) + (state.flatpak.total_install_bytes or 0)
     state.total_download_formatted = formatBytes(state.total_download_bytes)
     state.total_install_formatted = formatBytes(state.total_install_bytes)
-    state.last_check = noctalia.formatTime("%H:%M")
+    state.last_check = noctalia.formatTime("%d/%m %H:%M")
     state.last_check_timestamp = os.time()
 
     if state.dnf.error and state.flatpak.error then
@@ -454,6 +488,7 @@ local function checkAll(force)
     previousCount = state.total_count
 
     publishState()
+    saveState()
   end
 
   checkDnf(function(ok)
@@ -818,8 +853,9 @@ function onConfigChanged()
   includeFlatpakRuntimes = noctalia.getConfig("include_flatpak_runtimes") == true
   notifyOnUpdates = noctalia.getConfig("notify_on_updates") ~= false
   updateInTerminal = noctalia.getConfig("update_in_terminal") ~= false
-  elapsedMinutes = 0
-  checkAll(true)
+  if checkDue() then
+    checkAll(true)
+  end
 end
 
 function onIpc(event, payload)
@@ -851,13 +887,13 @@ end
 noctalia.setUpdateInterval(60000)
 
 function update()
-  elapsedMinutes += 1
-  if checkInterval > 0 and elapsedMinutes >= checkInterval then
-    elapsedMinutes = 0
+  if checkDue() then
     checkAll(false)
   end
 end
 
--- Initial state publish and immediate check on startup
+local restored = loadState()
 publishState()
-checkAll(true)
+if not restored or checkDue() then
+  checkAll(true)
+end

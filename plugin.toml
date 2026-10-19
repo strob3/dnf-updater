@@ -16,7 +16,7 @@ label_key = "settings.check_interval.label"
 description_key = "settings.check_interval.description"
 default = 30
 min = 0
-max = 1440
+max = 10080
 
 [[setting]]
 key = "enable_dnf"
