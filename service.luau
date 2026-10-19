@@ -469,6 +469,12 @@ local function checkAll(force)
   end)
 end
 
+-- runInTerminal is fire-and-forget, so the terminal itself pings us back when done
+-- (`;`, not `&&`: a failed or partial run still changes what is pending).
+local function runInTerminalThenRecheck(cmd)
+  noctalia.runInTerminal(cmd .. "; noctalia msg plugin strob3/dnf-updater:service all check")
+end
+
 local function updateDnf(excludedList, onFinished)
   local dnfBin = getDnfBinary()
   if not dnfBin then
@@ -508,7 +514,7 @@ local function updateDnf(excludedList, onFinished)
     if excludeArg then
       cmd = cmd .. " " .. shellQuote(excludeArg)
     end
-    noctalia.runInTerminal(cmd)
+    runInTerminalThenRecheck(cmd)
     state.dnf.status = "done"
     publishState()
     if onFinished then onFinished(true) end
@@ -599,7 +605,7 @@ local function updateFlatpak(selectedList, onFinished)
         cmd = cmd .. " " .. shellQuote(ref)
       end
     end
-    noctalia.runInTerminal(cmd)
+    runInTerminalThenRecheck(cmd)
     state.flatpak.status = "done"
     publishState()
     if onFinished then onFinished(true) end
@@ -707,7 +713,7 @@ local function updateAll(excludedDnf, selectedFlatpaks)
 
     if #cmds > 0 then
       local fullCmd = table.concat(cmds, " && ")
-      noctalia.runInTerminal(fullCmd)
+      runInTerminalThenRecheck(fullCmd)
       if dnfNeedsUpdate then state.dnf.status = "done" end
       if flatpakNeedsUpdate then state.flatpak.status = "done" end
       state.status = "SUCCESS"

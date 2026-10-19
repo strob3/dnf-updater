@@ -774,6 +774,13 @@ function onCheckNow()
   noctalia.state.set("service_command", { action = "check_now", ts = os.time() })
 end
 
+-- The terminal takes over from here; the panel's own progress view only matters for pkexec runs.
+local function closeIfTerminal()
+  if noctalia.getConfig("update_in_terminal") ~= false then
+    panel.close()
+  end
+end
+
 function onUpdateAll()
   local excludedDnfList = {}
   if updateState and updateState.dnf and updateState.dnf.packages then
@@ -800,6 +807,7 @@ function onUpdateAll()
     selected_flatpak = selectedFlatpakList,
     ts = os.time(),
   })
+  closeIfTerminal()
 end
 
 function onUpdateDnf()
@@ -817,6 +825,7 @@ function onUpdateDnf()
     excluded_dnf = excludedDnfList,
     ts = os.time(),
   })
+  closeIfTerminal()
 end
 
 function onUpdateFlatpak()
@@ -835,6 +844,7 @@ function onUpdateFlatpak()
     selected_flatpak = selectedFlatpakList,
     ts = os.time(),
   })
+  closeIfTerminal()
 end
 
 function onOpenSettings()
