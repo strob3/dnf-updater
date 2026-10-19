@@ -402,6 +402,46 @@ local function checkFlatpak(onFinished, isRetry)
   end, 30000)
 end
 
+-- Read from dnf history rather than recorded on our own runs: terminal updates are
+-- fire-and-forget, and a manual `dnf upgrade` counts too. Only an upgrade with no
+-- package args is a full update; Flatpak keeps no history, so it is not tracked.
+local function isFullUpgrade(commandLine)
+  local verbSeen = false
+  for word in (commandLine or ""):gmatch("%S+") do
+    if verbSeen then
+      if word:sub(1, 1) ~= "-" then
+        return false
+      end
+    elseif word == "upgrade" or word == "update" or word == "distro-sync" then
+      verbSeen = true
+    end
+  end
+  return verbSeen
+end
+
+local function refreshLastUpdate()
+  local dnfBin = getDnfBinary()
+  if not dnfBin then
+    return
+  end
+  noctalia.runAsync({ dnfBin, "history", "list", "--json" }, function(result)
+    local transactions = result and result.exitCode == 0 and noctalia.json.decode(result.stdout or "")
+    if type(transactions) ~= "table" then
+      return
+    end
+    local latest = 0
+    for _, t in ipairs(transactions) do
+      if t.status == "Ok" and (t.end_time or 0) > latest and isFullUpgrade(t.command_line) then
+        latest = t.end_time
+      end
+    end
+    if latest > 0 and latest ~= state.last_update_timestamp then
+      state.last_update_timestamp = latest
+      publishState()
+    end
+  end)
+end
+
 local function checkAll(force)
   if isChecking or isUpdating then
     return
@@ -410,6 +450,7 @@ local function checkAll(force)
   isChecking = true
   state.status = "CHECKING"
   publishState()
+  refreshLastUpdate()
 
   local dnfDone = false
   local flatpakDone = false

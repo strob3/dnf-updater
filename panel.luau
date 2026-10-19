@@ -180,9 +180,21 @@ local function tr(key, params)
   return text
 end
 
+local function formatAgo(timestamp)
+  local minutes = math.floor((os.time() - timestamp) / 60)
+  if minutes < 1 then
+    return tr("ago.now")
+  elseif minutes < 60 then
+    return tr("ago.minutes", { n = minutes })
+  elseif minutes < 1440 then
+    return tr("ago.hours", { n = math.floor(minutes / 60) })
+  end
+  return tr("ago.days", { n = math.floor(minutes / 1440) })
+end
+
 local function formatLastChecked(state)
-  if state and state.last_check and state.last_check ~= "" then
-    return tr("status.last_checked", { time = state.last_check })
+  if state and (state.last_check_timestamp or 0) > 0 then
+    return tr("status.last_checked", { time = formatAgo(state.last_check_timestamp) })
   end
   return tr("status.never_checked")
 end
@@ -259,11 +271,6 @@ local function statusCard(state)
           color = "error",
           maxLines = 2,
         }),
-        ui.label({
-          text = formatLastChecked(state),
-          fontSize = 10,
-          color = "on_surface_variant",
-        }),
       }),
     })
   elseif total == 0 then
@@ -284,11 +291,6 @@ local function statusCard(state)
         fontSize = 14,
         fontWeight = "semibold",
         color = "on_surface",
-      }),
-      ui.label({
-        text = formatLastChecked(state),
-        fontSize = 11,
-        color = "on_surface_variant",
       }),
     })
   else
@@ -657,12 +659,22 @@ render = function()
 
   local header = ui.row({ align = "center", gap = 8 }, {
     ui.glyph({ name = "package", size = 16, color = "primary" }),
-    ui.label({
-      key = "panel-title",
-      text = tr("title"),
-      fontSize = 15,
-      fontWeight = "bold",
-      color = "on_surface",
+    ui.column({ key = "panel-title-block", gap = 0 }, {
+      ui.label({
+        key = "panel-title",
+        text = total > 0 and (tr("title") .. " (" .. total .. ")") or tr("title"),
+        fontSize = 15,
+        fontWeight = "bold",
+        color = "on_surface",
+      }),
+      ui.label({
+        key = "panel-last-checked",
+        text = (state and (state.last_update_timestamp or 0) > 0)
+            and (formatLastChecked(state) .. " · " .. tr("status.last_update", { time = formatAgo(state.last_update_timestamp) }))
+          or formatLastChecked(state),
+        fontSize = 10,
+        color = "on_surface_variant",
+      }),
     }),
     ui.label({
       key = "panel-version",
