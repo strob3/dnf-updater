@@ -504,7 +504,7 @@ local function updateDnf(excludedList, onFinished)
 
   if updateInTerminal then
     local sudoCmd = noctalia.commandExists("sudo") and "sudo" or "pkexec"
-    local cmd = sudoCmd .. " " .. dnfBin .. " upgrade"
+    local cmd = sudoCmd .. " " .. dnfBin .. " upgrade -y"
     if excludeArg then
       cmd = cmd .. " " .. shellQuote(excludeArg)
     end
@@ -593,7 +593,7 @@ local function updateFlatpak(selectedList, onFinished)
   local hasSubset = validSelected and #validSelected > 0 and #validSelected < flatpakCount
 
   if updateInTerminal then
-    local cmd = "flatpak update"
+    local cmd = "flatpak update -y"
     if hasSubset then
       for _, ref in ipairs(validSelected) do
         cmd = cmd .. " " .. shellQuote(ref)
@@ -688,7 +688,7 @@ local function updateAll(excludedDnf, selectedFlatpaks)
 
     if dnfNeedsUpdate and dnfBin then
       local sudoCmd = noctalia.commandExists("sudo") and "sudo" or "pkexec"
-      local dnfCmd = sudoCmd .. " " .. dnfBin .. " upgrade"
+      local dnfCmd = sudoCmd .. " " .. dnfBin .. " upgrade -y"
       if #validExcluded > 0 then
         dnfCmd = dnfCmd .. " " .. shellQuote("--exclude=" .. table.concat(validExcluded, ","))
       end
@@ -696,7 +696,7 @@ local function updateAll(excludedDnf, selectedFlatpaks)
     end
 
     if flatpakNeedsUpdate then
-      local fpCmd = "flatpak update"
+      local fpCmd = "flatpak update -y"
       if validSelected and #validSelected > 0 and #validSelected < flatpakCount then
         for _, ref in ipairs(validSelected) do
           fpCmd = fpCmd .. " " .. shellQuote(ref)
