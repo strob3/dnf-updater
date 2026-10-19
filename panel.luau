@@ -18,6 +18,12 @@ local updateState = noctalia.state.get("update_state")
 local excludedDnf = {}
 local excludedFlatpak = {}
 
+-- Native-arch packages are the norm; only an odd one (noarch, i686) is worth a badge.
+local machineArch = (noctalia.readFile("/proc/sys/kernel/arch") or ""):match("%S+") or ""
+
+-- Fedora's own repos: their name tells nothing ("updates"), only third-party origins are worth showing.
+local officialRepos = { fedora = true, updates = true, ["updates-testing"] = true, ["updates-archive"] = true, ["fedora-cisco-openh264"] = true }
+
 local dnfCollapsed = false
 local flatpakCollapsed = false
 
@@ -423,9 +429,31 @@ local function renderDnfSection(state)
 
   for idx, pkg in ipairs(packages) do
     local isExcluded = excludedDnf[pkg.name] == true
-    local badge = pkg.arch
-    if pkg.repo and pkg.repo ~= "" then
-      badge = badge ~= "" and (badge .. " · " .. pkg.repo) or pkg.repo
+    local arch = (pkg.arch ~= machineArch) and (pkg.arch or "") or ""
+    local repo = ""
+    if pkg.repo and pkg.repo ~= "" and not officialRepos[pkg.repo] then
+      -- COPR repo ids ("copr:copr.fedorainfracloud.org:codifryed:CoolerControl") pushed the row wider than the panel.
+      repo = pkg.repo:match("^copr%a*:[^:]+:[^:]+:(.+)$") or pkg.repo
+    end
+    local badgeColor = isExcluded and "on_surface_variant" or "primary"
+    local badgeChildren = {}
+    if arch ~= "" then
+      table.insert(badgeChildren, ui.label({
+        text = repo ~= "" and (arch .. " ·") or arch,
+        fontSize = 10,
+        color = badgeColor .. "/0.6",
+        fontWeight = "semibold",
+      }))
+    end
+    if repo ~= "" then
+      table.insert(badgeChildren, ui.label({
+        text = repo,
+        maxWidth = 160,
+        maxLines = 1,
+        fontSize = 10,
+        color = badgeColor,
+        fontWeight = "semibold",
+      }))
     end
 
     local sizeLabel = (pkg.download_formatted and pkg.download_formatted ~= "") and pkg.download_formatted or ""
@@ -480,12 +508,7 @@ local function renderDnfSection(state)
           fontWeight = "bold",
           color = isExcluded and "on_surface_variant" or "on_surface",
         }),
-        ui.label({
-          text = badge or "",
-          fontSize = 10,
-          color = isExcluded and "on_surface_variant" or "primary",
-          fontWeight = "semibold",
-        }),
+        ui.row({ align = "center", gap = 4 }, badgeChildren),
       }),
     }))
   end
