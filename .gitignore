@@ -3,7 +3,6 @@
 *~
 *.DS_Store
 
-# preferences
-.codegraph
-AGENTS.md
-mds
+# misc
+.codegraph/
+mds/
